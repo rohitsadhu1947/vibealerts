@@ -1,0 +1,40 @@
+monitoring:
+  enabled: true
+  poll_interval: 3  # seconds
+  sources:
+    # Primary: NSE API (may have bot protection)
+    - name: nse_api
+      url: "https://www.nseindia.com/api/corporate-announcements"
+      enabled: true
+      timeout: 10
+      priority: 1
+    
+    # Secondary: MoneyControl RSS (working alternative)
+    - name: moneycontrol_rss
+      url: "https://www.moneycontrol.com/rss/results.xml"
+      enabled: true
+      timeout: 5
+      priority: 2
+    
+    # BSE API (not fully implemented yet)
+    - name: bse_api
+      url: "https://www.bseindia.com/xml-data/corpfiling/AttachLive/Announcement_Attachment.aspx"
+      enabled: false
+      timeout: 5
+      priority: 3
+
+redis:
+  dedup_ttl: 3600
+
+extraction:
+  pdf_timeout: 10
+  max_retries: 3
+  
+telegram:
+  max_message_length: 4096
+  retry_attempts: 3
+
+logging:
+  level: INFO
+  format: json
+
