@@ -3,6 +3,8 @@ python-dotenv>=1.0.0
 pyyaml>=6.0.1
 asyncio>=3.4.3
 aiohttp>=3.9.0
+brotli>=1.1.0
+brotlipy>=0.7.0
 
 # Database
 asyncpg>=0.29.0
