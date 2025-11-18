@@ -467,6 +467,8 @@ class MonitoringService:
                 monitors.append(NSEMonitor(source_config))
             elif source_config['name'] == 'bse_api':
                 monitors.append(BSEMonitor(source_config))
+            elif source_config['name'] == 'bse_library':
+                monitors.append(BSELibraryMonitor(source_config))
             elif source_config['name'] == 'moneycontrol_rss':
                 monitors.append(MoneyControlRSSMonitor(source_config))
             elif source_config['name'] == 'economic_times_rss':
@@ -578,4 +580,81 @@ class MonitoringService:
                 except Exception as e:
                     logger.error(f"Monitor cycle error: {e}")
                     await asyncio.sleep(5)
+
+
+class BSELibraryMonitor(SourceMonitor):
+    """BSE announcements monitor using bse Python library"""
+    
+    async def fetch(self) -> List[Announcement]:
+        """Fetch from BSE using bse library"""
+        from bse import BSE
+        
+        try:
+            logger.info("Fetching BSE announcements via bse library...")
+            
+            # Use BSE library (synchronous, but fast)
+            with BSE() as bse:
+                response = bse.announcements()
+                
+                if response and 'Table' in response:
+                    announcements = response['Table']
+                    logger.info(f"BSE library returned {len(announcements)} announcements")
+                    return await self.parse(announcements)
+                else:
+                    logger.warning("BSE library returned empty or invalid response")
+                    return []
+                    
+        except Exception as e:
+            logger.error(f"BSE library error: {e}")
+            return []
+    
+    async def parse(self, data: List[dict]) -> List[Announcement]:
+        """Parse BSE library response"""
+        announcements = []
+        
+        for item in data:
+            try:
+                # Get the announcement details
+                headline = item.get('HEADLINE', '') or item.get('MORE', '')
+                subcategory = item.get('SUBCATNAME', '')
+                
+                # Check if this is a quarterly result
+                combined_text = f"{headline} {subcategory}".lower()
+                if not self.is_quarterly_result(combined_text):
+                    continue
+                
+                # Extract symbol from company name (scrip code)
+                scrip_code = item.get('SCRIP_CD', '')
+                company_name = item.get('SLONGNAME', '')
+                
+                # Get PDF attachment if available
+                attachment_name = item.get('ATTACHMENTNAME', '')
+                attachment_url = ''
+                if attachment_name:
+                    # BSE PDF URL format
+                    attachment_url = f"https://www.bseindia.com/xml-data/corpfiling/AttachLive/{attachment_name}"
+                
+                # Parse date
+                date_str = item.get('NEWS_DT', '') or item.get('DT_TM', '')
+                
+                ann = Announcement(
+                    source='bse_library',
+                    symbol=f"{scrip_code}",
+                    date=date_str,
+                    description=headline,
+                    attachment_url=attachment_url,
+                    attachment_text=company_name,
+                    timestamp=datetime.now()
+                )
+                
+                if ann.symbol and (ann.attachment_url or ann.description):
+                    announcements.append(ann)
+                    logger.debug(f"BSE: Found result for {company_name} ({scrip_code})")
+                    
+            except Exception as e:
+                logger.error(f"BSE parse error for item: {e}")
+                continue
+        
+        logger.info(f"BSE Library: Found {len(announcements)} result announcements")
+        return announcements
 
