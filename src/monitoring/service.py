@@ -587,25 +587,52 @@ class BSELibraryMonitor(SourceMonitor):
     
     async def fetch(self) -> List[Announcement]:
         """Fetch from BSE using bse library"""
-        from bse import BSE
-        import tempfile
-        
         try:
             logger.info("Fetching BSE announcements via bse library...")
+            
+            # Import here to catch import errors
+            try:
+                from bse import BSE
+                import tempfile
+                logger.debug("BSE library imported successfully")
+            except ImportError as e:
+                logger.error(f"Failed to import BSE library: {e}")
+                return []
             
             # Use BSE library (synchronous, but fast)
             # Use temp directory for any downloads
             download_folder = tempfile.gettempdir()
-            with BSE(download_folder=download_folder) as bse:
-                response = bse.announcements()
+            logger.debug(f"Using download folder: {download_folder}")
+            
+            try:
+                logger.debug("Initializing BSE library...")
+                bse = BSE(download_folder=download_folder)
+                logger.debug("BSE library initialized successfully")
                 
-                if response and 'Table' in response:
-                    announcements = response['Table']
-                    logger.info(f"BSE library returned {len(announcements)} announcements")
-                    return await self.parse(announcements)
-                else:
-                    logger.warning("BSE library returned empty or invalid response")
-                    return []
+                logger.debug("Calling bse.announcements()...")
+                response = bse.announcements()
+                logger.debug(f"Got response from BSE: {type(response)}")
+                
+                bse.exit()
+                
+            except TypeError as e:
+                logger.error(f"BSE initialization error: {e}")
+                logger.error(f"This might be a version issue. Trying alternate initialization...")
+                # Try alternate approach
+                import os
+                os.makedirs('/tmp/bse_downloads', exist_ok=True)
+                bse = BSE('/tmp/bse_downloads')
+                response = bse.announcements()
+                bse.exit()
+            
+            # Process response (whether from try or except block)
+            if response and 'Table' in response:
+                announcements = response['Table']
+                logger.info(f"BSE library returned {len(announcements)} announcements")
+                return await self.parse(announcements)
+            else:
+                logger.warning("BSE library returned empty or invalid response")
+                return []
                     
         except Exception as e:
             logger.error(f"BSE library error: {e}")
