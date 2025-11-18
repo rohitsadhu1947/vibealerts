@@ -2,26 +2,40 @@ monitoring:
   enabled: true
   poll_interval: 3  # seconds
   sources:
-    # Primary: NSE API (may have bot protection)
-    - name: nse_api
-      url: "https://www.nseindia.com/api/corporate-announcements"
+    # Primary: Economic Times RSS (WORKING - updated daily)
+    - name: economic_times_rss
+      url: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"
       enabled: true
       timeout: 10
       priority: 1
     
-    # Secondary: MoneyControl RSS (working alternative)
-    - name: moneycontrol_rss
-      url: "https://www.moneycontrol.com/rss/results.xml"
+    # Secondary: Livemint RSS (WORKING - updated daily)
+    - name: livemint_rss
+      url: "https://www.livemint.com/rss/markets"
       enabled: true
-      timeout: 5
+      timeout: 10
       priority: 2
     
-    # BSE API (not fully implemented yet)
+    # Backup: NSE API (may have bot protection)
+    - name: nse_api
+      url: "https://www.nseindia.com/api/corporate-announcements"
+      enabled: true
+      timeout: 10
+      priority: 3
+    
+    # Disabled: MoneyControl RSS (stale - last updated April 2024)
+    - name: moneycontrol_rss
+      url: "https://www.moneycontrol.com/rss/results.xml"
+      enabled: false
+      timeout: 5
+      priority: 4
+    
+    # Disabled: BSE API (not fully implemented yet)
     - name: bse_api
       url: "https://www.bseindia.com/xml-data/corpfiling/AttachLive/Announcement_Attachment.aspx"
       enabled: false
       timeout: 5
-      priority: 3
+      priority: 5
 
 redis:
   dedup_ttl: 3600

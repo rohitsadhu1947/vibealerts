@@ -276,6 +276,174 @@ class MoneyControlRSSMonitor(SourceMonitor):
         return announcements
 
 
+class EconomicTimesRSSMonitor(SourceMonitor):
+    """Economic Times RSS feed monitor - WORKING alternative"""
+    
+    async def fetch(self) -> List[Announcement]:
+        """Fetch from Economic Times RSS"""
+        if not self.session:
+            return []
+        
+        try:
+            async with self.session.get(
+                self.url,
+                timeout=aiohttp.ClientTimeout(total=self.timeout)
+            ) as resp:
+                if resp.status == 200:
+                    text = await resp.text()
+                    return await self.parse(text)
+                else:
+                    logger.warning(f"Economic Times RSS fetch failed: HTTP {resp.status}")
+                    return []
+        except asyncio.TimeoutError:
+            logger.warning(f"Economic Times RSS timeout after {self.timeout}s")
+            return []
+        except Exception as e:
+            logger.error(f"Economic Times RSS error: {e}")
+            return []
+    
+    async def parse(self, xml_text: str) -> List[Announcement]:
+        """Parse RSS feed XML"""
+        import re
+        from xml.etree import ElementTree as ET
+        
+        announcements = []
+        
+        try:
+            root = ET.fromstring(xml_text)
+            
+            for item in root.findall('.//item'):
+                try:
+                    title = item.find('title').text if item.find('title') is not None else ''
+                    description = item.find('description').text if item.find('description') is not None else ''
+                    link = item.find('link').text if item.find('link') is not None else ''
+                    pub_date = item.find('pubDate').text if item.find('pubDate') is not None else ''
+                    
+                    # Check if this is a quarterly result
+                    combined_text = f"{title} {description}".lower()
+                    if not self.is_quarterly_result(combined_text):
+                        continue
+                    
+                    # Try to extract symbol from title
+                    symbol_match = re.search(r'\b([A-Z][A-Z]+)\b', title)
+                    symbol = symbol_match.group(1) if symbol_match else 'UNKNOWN'
+                    
+                    # Extract date from pubDate
+                    date_match = re.search(r'(\d{1,2} \w{3} \d{4})', pub_date)
+                    date = date_match.group(1) if date_match else ''
+                    
+                    ann = Announcement(
+                        source='economic_times',
+                        symbol=symbol,
+                        date=date,
+                        description=title,
+                        attachment_url=link,
+                        attachment_text=description,
+                        timestamp=datetime.now()
+                    )
+                    
+                    if ann.symbol != 'UNKNOWN':
+                        announcements.append(ann)
+                        
+                except Exception as e:
+                    logger.debug(f"Error parsing ET RSS item: {e}")
+                    continue
+            
+            if announcements:
+                logger.info(f"Economic Times RSS: Found {len(announcements)} result announcements")
+            
+        except ET.ParseError as e:
+            logger.error(f"Failed to parse ET RSS XML: {e}")
+        except Exception as e:
+            logger.error(f"ET RSS parsing error: {e}")
+        
+        return announcements
+
+
+class LivemintRSSMonitor(SourceMonitor):
+    """Livemint RSS feed monitor - WORKING alternative"""
+    
+    async def fetch(self) -> List[Announcement]:
+        """Fetch from Livemint RSS"""
+        if not self.session:
+            return []
+        
+        try:
+            async with self.session.get(
+                self.url,
+                timeout=aiohttp.ClientTimeout(total=self.timeout)
+            ) as resp:
+                if resp.status == 200:
+                    text = await resp.text()
+                    return await self.parse(text)
+                else:
+                    logger.warning(f"Livemint RSS fetch failed: HTTP {resp.status}")
+                    return []
+        except asyncio.TimeoutError:
+            logger.warning(f"Livemint RSS timeout after {self.timeout}s")
+            return []
+        except Exception as e:
+            logger.error(f"Livemint RSS error: {e}")
+            return []
+    
+    async def parse(self, xml_text: str) -> List[Announcement]:
+        """Parse RSS feed XML"""
+        import re
+        from xml.etree import ElementTree as ET
+        
+        announcements = []
+        
+        try:
+            root = ET.fromstring(xml_text)
+            
+            for item in root.findall('.//item'):
+                try:
+                    title = item.find('title').text if item.find('title') is not None else ''
+                    description = item.find('description').text if item.find('description') is not None else ''
+                    link = item.find('link').text if item.find('link') is not None else ''
+                    pub_date = item.find('pubDate').text if item.find('pubDate') is not None else ''
+                    
+                    # Check if this is a quarterly result
+                    combined_text = f"{title} {description}".lower()
+                    if not self.is_quarterly_result(combined_text):
+                        continue
+                    
+                    # Try to extract symbol from title
+                    symbol_match = re.search(r'\b([A-Z][A-Z]+)\b', title)
+                    symbol = symbol_match.group(1) if symbol_match else 'UNKNOWN'
+                    
+                    # Extract date from pubDate
+                    date_match = re.search(r'(\d{1,2} \w{3} \d{4})', pub_date)
+                    date = date_match.group(1) if date_match else ''
+                    
+                    ann = Announcement(
+                        source='livemint',
+                        symbol=symbol,
+                        date=date,
+                        description=title,
+                        attachment_url=link,
+                        attachment_text=description,
+                        timestamp=datetime.now()
+                    )
+                    
+                    if ann.symbol != 'UNKNOWN':
+                        announcements.append(ann)
+                        
+                except Exception as e:
+                    logger.debug(f"Error parsing Livemint RSS item: {e}")
+                    continue
+            
+            if announcements:
+                logger.info(f"Livemint RSS: Found {len(announcements)} result announcements")
+            
+        except ET.ParseError as e:
+            logger.error(f"Failed to parse Livemint RSS XML: {e}")
+        except Exception as e:
+            logger.error(f"Livemint RSS parsing error: {e}")
+        
+        return announcements
+
+
 class MonitoringService:
     """Main monitoring orchestrator"""
     
@@ -301,6 +469,10 @@ class MonitoringService:
                 monitors.append(BSEMonitor(source_config))
             elif source_config['name'] == 'moneycontrol_rss':
                 monitors.append(MoneyControlRSSMonitor(source_config))
+            elif source_config['name'] == 'economic_times_rss':
+                monitors.append(EconomicTimesRSSMonitor(source_config))
+            elif source_config['name'] == 'livemint_rss':
+                monitors.append(LivemintRSSMonitor(source_config))
         
         # Sort by priority
         monitors.sort(key=lambda m: m.priority)
