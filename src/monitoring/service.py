@@ -588,12 +588,15 @@ class BSELibraryMonitor(SourceMonitor):
     async def fetch(self) -> List[Announcement]:
         """Fetch from BSE using bse library"""
         from bse import BSE
+        import tempfile
         
         try:
             logger.info("Fetching BSE announcements via bse library...")
             
             # Use BSE library (synchronous, but fast)
-            with BSE() as bse:
+            # Use temp directory for any downloads
+            download_folder = tempfile.gettempdir()
+            with BSE(download_folder=download_folder) as bse:
                 response = bse.announcements()
                 
                 if response and 'Table' in response:
