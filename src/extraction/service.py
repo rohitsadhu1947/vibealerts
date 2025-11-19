@@ -327,7 +327,25 @@ class ExtractionService:
             
             # 4. Parse metrics from text
             logger.info(f"[4/4] Parsing metrics for {announcement.symbol}...")
-            metrics = self.metrics_parser.parse(text, announcement.symbol)
+            
+            # For earnings call transcripts, create minimal metrics
+            # (Transcripts contain discussions/guidance, not actual reported numbers)
+            if announcement_type == "EARNINGS_CALL":
+                logger.warning(
+                    f"Skipping detailed metric extraction for earnings call transcript "
+                    f"(transcripts contain discussions/guidance, not actual results)"
+                )
+                metrics = ExtractedMetrics(
+                    symbol=announcement.symbol,
+                    quarter=self.metrics_parser._extract_quarter(text),
+                    fiscal_year=self.metrics_parser._extract_fiscal_year(text),
+                    extraction_method="transcript_minimal"
+                )
+                # Set a note that this is a transcript
+                metrics.confidence_score = 0.1  # Low confidence since no real data
+            else:
+                # Normal parsing for actual results
+                metrics = self.metrics_parser.parse(text, announcement.symbol)
             
             # 5. Set extraction method
             if announcement.attachment_text and len(announcement.attachment_text) > 200:

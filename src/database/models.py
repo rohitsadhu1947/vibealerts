@@ -300,16 +300,12 @@ class AlertMessage:
         # Use company name if available, otherwise symbol
         display_name = self.company_name if self.company_name else self.symbol
         
-        # Format numbers
-        revenue = f"₹{float(self.metrics.revenue):,.0f}Cr" if self.metrics.revenue else "N/A"
-        profit = f"₹{float(self.metrics.profit_after_tax):,.0f}Cr" if self.metrics.profit_after_tax else "N/A"
-        
         message = f"""🎤 **{display_name} Q{self.metrics.quarter} FY{self.metrics.fiscal_year} Earnings Call**
 
 **Type:** Transcript/Conference Call
 
-**Revenue:** {revenue}
-**Profit:** {profit}
+⚠️ **Note:** This is a discussion transcript, not actual results.
+Numbers mentioned may be guidance/expectations, not reported figures.
 
 ⏱️ Detected in {self.detection_time_sec:.1f}s"""
         
