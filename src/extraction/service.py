@@ -291,7 +291,8 @@ class ExtractionService:
             logger.info(f"[1/4] Classifying announcement type for {announcement.symbol}...")
             announcement_type, confidence = AnnouncementClassifier.classify(
                 announcement.description,
-                announcement.attachment_text
+                announcement.attachment_text,
+                announcement.source  # Pass source for better classification
             )
             announcement.announcement_type = announcement_type
             
