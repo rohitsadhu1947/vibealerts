@@ -673,8 +673,15 @@ class MonitoringService:
     async def _process_announcement(self, ann: Announcement):
         """Process a single announcement with deduplication"""
         
-        # Check deduplication
-        dedup_key = f"processed:{ann.symbol}:{ann.date}"
+        # Check deduplication - use URL for RSS, symbol+date for others
+        if 'rss' in ann.source.lower() and ann.attachment_url:
+            # For RSS, use URL hash as unique identifier
+            import hashlib
+            url_hash = hashlib.md5(ann.attachment_url.encode()).hexdigest()[:16]
+            dedup_key = f"processed:rss:{url_hash}"
+        else:
+            # For BSE/NSE, use symbol + date
+            dedup_key = f"processed:{ann.symbol}:{ann.date}"
         
         if self.redis.exists(dedup_key):
             logger.debug(f"Already processed: {ann.symbol} on {ann.date}")
@@ -712,8 +719,15 @@ class MonitoringService:
                         
                         # result is a list of announcements
                         for announcement in result:
-                            # Check deduplication
-                            dedup_key = f"processed:{announcement.symbol}:{announcement.date}"
+                            # Check deduplication - use URL for RSS, symbol+date for others
+                            if 'rss' in announcement.source.lower() and announcement.attachment_url:
+                                # For RSS, use URL hash as unique identifier
+                                import hashlib
+                                url_hash = hashlib.md5(announcement.attachment_url.encode()).hexdigest()[:16]
+                                dedup_key = f"processed:rss:{url_hash}"
+                            else:
+                                # For BSE/NSE, use symbol + date
+                                dedup_key = f"processed:{announcement.symbol}:{announcement.date}"
                             
                             if self.redis.exists(dedup_key):
                                 logger.debug(f"⏭️  Skipping already processed: {announcement.symbol} ({announcement.date})")
