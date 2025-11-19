@@ -100,6 +100,41 @@ class SourceMonitor:
             'net profit', 'gross profit', 'pat', 'pbt',
         ]
         return any(kw in text_lower for kw in keywords)
+    
+    def is_relevant_news(self, text: str) -> bool:
+        """Check if RSS news article is relevant (more relaxed than is_quarterly_result)"""
+        text_lower = text.lower()
+        
+        # Exclude administrative notices (same as above)
+        exclude_keywords = [
+            'newspaper publication', 'newspaper advertisement',
+            'agm notice', 'egm notice', 'book closure',
+            'e-voting', 'postal ballot', 'compliance certificate',
+        ]
+        
+        if any(kw in text_lower for kw in exclude_keywords):
+            return False
+        
+        # For RSS news, accept market-moving content
+        # This is more relaxed than quarterly results filter
+        relevant_keywords = [
+            # Results-related
+            'result', 'results', 'quarterly', 'q1', 'q2', 'q3', 'q4',
+            'profit', 'revenue', 'earnings', 'eps', 'pat',
+            
+            # Market movement
+            'rebounds', 'rebounded', 'surges', 'plunges', 'rallies',
+            'gains', 'rises', 'falls', 'jumps', 'drops',
+            
+            # Corporate actions
+            'secured', 'secures', 'securing', 'wins', 'bags',
+            'acquisition', 'merger', 'deal', 'contract', 'order',
+            
+            # Stock-related
+            'stock', 'share', 'price', 'market', 'trading',
+        ]
+        
+        return any(kw in text_lower for kw in relevant_keywords)
 
 
 class NSEMonitor(SourceMonitor):
@@ -374,9 +409,9 @@ class EconomicTimesRSSMonitor(SourceMonitor):
                     link = item.find('link').text if item.find('link') is not None else ''
                     pub_date = item.find('pubDate').text if item.find('pubDate') is not None else ''
                     
-                    # Check if this is a quarterly result
+                    # Check if this is relevant news (more relaxed filter for RSS)
                     combined_text = f"{title} {description}".lower()
-                    if not self.is_quarterly_result(combined_text):
+                    if not self.is_relevant_news(combined_text):
                         continue
                     
                     # Try to extract symbol from title
@@ -462,9 +497,9 @@ class LivemintRSSMonitor(SourceMonitor):
                     link = item.find('link').text if item.find('link') is not None else ''
                     pub_date = item.find('pubDate').text if item.find('pubDate') is not None else ''
                     
-                    # Check if this is a quarterly result
+                    # Check if this is relevant news (more relaxed filter for RSS)
                     combined_text = f"{title} {description}".lower()
-                    if not self.is_quarterly_result(combined_text):
+                    if not self.is_relevant_news(combined_text):
                         continue
                     
                     # Try to extract symbol from title
