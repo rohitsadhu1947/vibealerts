@@ -135,6 +135,57 @@ class SourceMonitor:
         ]
         
         return any(kw in text_lower for kw in relevant_keywords)
+    
+    def is_major_corporate_action(self, text: str) -> bool:
+        """Check if announcement is a major corporate action worth alerting"""
+        text_lower = text.lower()
+        
+        # Exclude administrative notices (same as before)
+        exclude_keywords = [
+            'newspaper publication', 'newspaper advertisement',
+            'agm notice', 'egm notice', 'book closure',
+            'e-voting', 'postal ballot', 'compliance certificate',
+            'loss of share certificate', 'duplicate share certificate',
+        ]
+        
+        if any(kw in text_lower for kw in exclude_keywords):
+            return False
+        
+        # Major corporate actions worth alerting
+        action_keywords = [
+            # Contract/Order wins
+            'work order', 'work orders', 'order received', 'orders received',
+            'contract awarded', 'contract received', 'loi received',
+            'purchase order', 'tender awarded',
+            
+            # M&A and investments
+            'acquisition', 'merger', 'takeover', 'buyback',
+            'amalgamation', 'demerger', 'scheme of arrangement',
+            'joint venture', 'strategic investment',
+            
+            # Capital raising
+            'preferential allotment', 'qip', 'fpo', 'rights issue',
+            'bonus issue', 'stock split', 'warrant conversion',
+            
+            # Major announcements
+            'material event', 'major event', 'significant development',
+            'resignation of director', 'appointment of director',
+            'change in management', 'ceo', 'cfo', 'md',
+            
+            # Regulatory
+            'sebi order', 'regulatory action', 'delisting',
+            'suspension', 'penalty imposed',
+        ]
+        
+        # Check for high-value mentions (₹X crore contract)
+        # If text mentions "crore" or "lakh" with "order/contract", it's likely important
+        has_value = any(unit in text_lower for unit in ['crore', 'cr.', 'lakh'])
+        has_business = any(word in text_lower for word in ['order', 'contract', 'work', 'tender'])
+        
+        if has_value and has_business:
+            return True
+        
+        return any(kw in text_lower for kw in action_keywords)
 
 
 class NSEMonitor(SourceMonitor):
@@ -748,9 +799,14 @@ class BSELibraryMonitor(SourceMonitor):
                 headline = item.get('HEADLINE', '') or item.get('MORE', '')
                 subcategory = item.get('SUBCATNAME', '')
                 
-                # Check if this is a quarterly result
+                # Check if this is a quarterly result OR high-value corporate action
                 combined_text = f"{headline} {subcategory}".lower()
-                if not self.is_quarterly_result(combined_text):
+                
+                # Accept quarterly results OR major corporate actions
+                is_result = self.is_quarterly_result(combined_text)
+                is_major_action = self.is_major_corporate_action(combined_text)
+                
+                if not (is_result or is_major_action):
                     continue
                 
                 # Extract symbol from company name (scrip code)
