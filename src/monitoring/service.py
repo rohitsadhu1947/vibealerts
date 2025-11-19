@@ -847,9 +847,9 @@ class BSELibraryMonitor(SourceMonitor):
         
         for item in data:
             try:
-                # Get the announcement details
-                headline = item.get('HEADLINE', '') or item.get('MORE', '')
-                subcategory = item.get('SUBCATNAME', '')
+                # Get the announcement details (convert to string to handle integers)
+                headline = str(item.get('HEADLINE', '') or item.get('MORE', ''))
+                subcategory = str(item.get('SUBCATNAME', ''))
                 
                 # Check if this is a quarterly result OR high-value corporate action
                 combined_text = f"{headline} {subcategory}".lower()
@@ -862,8 +862,8 @@ class BSELibraryMonitor(SourceMonitor):
                     continue
                 
                 # Extract symbol from company name (scrip code)
-                scrip_code = item.get('SCRIP_CD', '')
-                company_name = item.get('SLONGNAME', '')
+                scrip_code = str(item.get('SCRIP_CD', ''))  # Convert to string
+                company_name = str(item.get('SLONGNAME', ''))  # Convert to string
                 
                 # Apply stock filter (BSE 500 + custom watchlist)
                 from src.utils.stock_filter import get_stock_filter
@@ -884,11 +884,11 @@ class BSELibraryMonitor(SourceMonitor):
                     attachment_url = f"https://www.bseindia.com/xml-data/corpfiling/AttachLive/{attachment_name}"
                 
                 # Parse date
-                date_str = item.get('NEWS_DT', '') or item.get('DT_TM', '')
+                date_str = str(item.get('NEWS_DT', '') or item.get('DT_TM', ''))
                 
                 ann = Announcement(
                     source='bse_library',
-                    symbol=f"{scrip_code}",
+                    symbol=scrip_code,  # Already converted to string above
                     date=date_str,
                     description=headline,
                     attachment_url=attachment_url,
