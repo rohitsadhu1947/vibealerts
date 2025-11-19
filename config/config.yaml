@@ -9,24 +9,24 @@ monitoring:
       timeout: 10
       priority: 1
     
-    # SECONDARY: Economic Times RSS - News articles with text content
+    # DISABLED: Economic Times RSS - Causing duplicate alerts
     - name: economic_times_rss
       url: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"
-      enabled: true
+      enabled: false
       timeout: 10
       priority: 2
     
-    # TERTIARY: Livemint RSS - News articles with text content
+    # DISABLED: Livemint RSS - Causing duplicate alerts
     - name: livemint_rss
       url: "https://www.livemint.com/rss/markets"
-      enabled: true
+      enabled: false
       timeout: 10
       priority: 3
     
-    # BACKUP: NSE API (may have bot protection, but has PDFs)
+    # DISABLED: NSE API (may have bot protection, but has PDFs)
     - name: nse_api
       url: "https://www.nseindia.com/api/corporate-announcements"
-      enabled: true
+      enabled: false
       timeout: 10
       priority: 4
     
@@ -45,7 +45,7 @@ monitoring:
       priority: 6
 
 redis:
-  dedup_ttl: 21600  # 6 hours - longer window to reduce RSS duplicates until URL normalization is fully deployed
+  dedup_ttl: 3600  # 1 hour - BSE announcements only (no RSS duplicates)
 
 # Stock filtering - Reduce noise by monitoring only relevant stocks
 stock_filter:
