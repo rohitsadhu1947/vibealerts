@@ -29,7 +29,7 @@ class TelegramNotifier:
     async def send_alert(self, alert: AlertMessage) -> bool:
         """Send alert to channel"""
         
-        message_text = alert.format_telegram()
+        message_text = await alert.format_telegram()  # Now async!
         reply_markup = self._get_buttons(alert)
         
         try:
@@ -42,7 +42,9 @@ class TelegramNotifier:
                 disable_web_page_preview=True
             )
             
-            logger.info(f"📤 Sent alert to channel: {alert.symbol} (msg_id: {message.message_id})")
+            # Use company name if available for logging
+            display_name = alert.company_name if alert.company_name else alert.symbol
+            logger.info(f"📤 Sent alert to channel: {display_name} (msg_id: {message.message_id})")
             
             # Pin if strong beat or major miss
             from src.database.models import Sentiment
@@ -52,7 +54,7 @@ class TelegramNotifier:
                         chat_id=self.channel_id,
                         message_id=message.message_id
                     )
-                    logger.info(f"📌 Pinned message for {alert.symbol}")
+                    logger.info(f"📌 Pinned message for {display_name}")
                 except Exception as e:
                     logger.warning(f"Failed to pin message: {e}")
             

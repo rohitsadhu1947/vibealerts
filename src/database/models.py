@@ -156,10 +156,14 @@ class AlertMessage:
     announcement_type: str = "QUARTERLY_RESULT"  # Default to quarterly result
     news_title: str = ""  # For news articles
     news_content: str = ""  # For news articles
+    company_name: str = ""  # Resolved company name (will be populated)
     
-    def format_telegram(self) -> str:
+    async def format_telegram(self) -> str:
         """Format message for Telegram with Markdown"""
-        emoji = self.analysis.action_emoji
+        # Resolve symbol to company name if not already done
+        if not self.company_name:
+            from src.utils.symbol_resolver import resolve_symbol
+            self.company_name = await resolve_symbol(self.symbol)
         
         # Different formats based on announcement type
         if self.announcement_type == "NEWS_ARTICLE":
@@ -175,6 +179,9 @@ class AlertMessage:
         """Format quarterly result alert"""
         emoji = self.analysis.action_emoji
         
+        # Use company name if available, otherwise symbol
+        display_name = self.company_name if self.company_name else self.symbol
+        
         # Format numbers
         revenue = f"₹{float(self.metrics.revenue):,.0f}Cr" if self.metrics.revenue else "N/A"
         profit = f"₹{float(self.metrics.profit_after_tax):,.0f}Cr" if self.metrics.profit_after_tax else "N/A"
@@ -184,7 +191,7 @@ class AlertMessage:
         yoy_rev = f"({self.analysis.yoy_revenue_growth:+.1f}%)" if self.analysis.yoy_revenue_growth else ""
         yoy_profit = f"({self.analysis.yoy_profit_growth:+.1f}%)" if self.analysis.yoy_profit_growth else ""
         
-        message = f"""📊 **{self.symbol} Q{self.metrics.quarter} FY{self.metrics.fiscal_year} Results**
+        message = f"""📊 **{display_name} Q{self.metrics.quarter} FY{self.metrics.fiscal_year} Results**
 
 **Revenue:** {revenue} {yoy_rev}
 **Profit:** {profit} {yoy_profit}
@@ -221,10 +228,13 @@ class AlertMessage:
         """Format news article alert with actionable insights"""
         from src.utils.news_analyzer import NewsAnalyzer
         
+        # Use company name if available, otherwise symbol
+        display_name = self.company_name if self.company_name else self.symbol
+        
         # Analyze the news for insights
         insights = NewsAnalyzer.analyze(self.news_title, self.news_content)
         
-        message = f"""📰 **{self.symbol} - Market News**
+        message = f"""📰 **{display_name} - Market News**
 
 {insights['sentiment_emoji']} **Sentiment:** {insights['sentiment']}
 """
@@ -263,7 +273,10 @@ class AlertMessage:
     
     def _format_corporate_action_alert(self) -> str:
         """Format corporate action alert (M&A, buyback, etc.)"""
-        message = f"""🔔 **{self.symbol} - Corporate Action**
+        # Use company name if available, otherwise symbol
+        display_name = self.company_name if self.company_name else self.symbol
+        
+        message = f"""🔔 **{display_name} - Corporate Action**
 
 **Type:** Disclosure/Corporate Filing
 
@@ -284,11 +297,14 @@ class AlertMessage:
     
     def _format_earnings_call_alert(self) -> str:
         """Format earnings call transcript alert"""
+        # Use company name if available, otherwise symbol
+        display_name = self.company_name if self.company_name else self.symbol
+        
         # Format numbers
         revenue = f"₹{float(self.metrics.revenue):,.0f}Cr" if self.metrics.revenue else "N/A"
         profit = f"₹{float(self.metrics.profit_after_tax):,.0f}Cr" if self.metrics.profit_after_tax else "N/A"
         
-        message = f"""🎤 **{self.symbol} Q{self.metrics.quarter} FY{self.metrics.fiscal_year} Earnings Call**
+        message = f"""🎤 **{display_name} Q{self.metrics.quarter} FY{self.metrics.fiscal_year} Earnings Call**
 
 **Type:** Transcript/Conference Call
 
