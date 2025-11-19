@@ -45,7 +45,7 @@ monitoring:
       priority: 6
 
 redis:
-  dedup_ttl: 60  # 60 seconds (1 minute) for testing, change back to 3600 later
+  dedup_ttl: 3600  # 1 hour - normal operation
 
 extraction:
   pdf_timeout: 10
