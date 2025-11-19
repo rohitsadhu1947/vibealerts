@@ -45,7 +45,7 @@ monitoring:
       priority: 6
 
 redis:
-  dedup_ttl: 3600  # 1 hour - normal operation
+  dedup_ttl: 21600  # 6 hours - longer window to reduce RSS duplicates until URL normalization is fully deployed
 
 # Stock filtering - Reduce noise by monitoring only relevant stocks
 stock_filter:
