@@ -679,9 +679,12 @@ class MonitoringService:
             import hashlib
             url_hash = hashlib.md5(ann.attachment_url.encode()).hexdigest()[:16]
             dedup_key = f"processed:rss:{url_hash}"
+            logger.debug(f"🔗 RSS URL: {ann.attachment_url[:80]}...")
+            logger.debug(f"🔑 Dedup key: {dedup_key}")
         else:
             # For BSE/NSE, use symbol + date
             dedup_key = f"processed:{ann.symbol}:{ann.date}"
+            logger.debug(f"🔑 Dedup key: {dedup_key}")
         
         if self.redis.exists(dedup_key):
             logger.debug(f"Already processed: {ann.symbol} on {ann.date}")
@@ -689,6 +692,7 @@ class MonitoringService:
         
         # Mark as processed
         self.redis.setex(dedup_key, self.dedup_ttl, "1")
+        logger.debug(f"✅ Stored dedup key: {dedup_key} (TTL: {self.dedup_ttl}s)")
         
         # Queue for extraction
         self.redis.lpush('extraction_queue', json.dumps(ann.to_json()))
@@ -725,9 +729,12 @@ class MonitoringService:
                                 import hashlib
                                 url_hash = hashlib.md5(announcement.attachment_url.encode()).hexdigest()[:16]
                                 dedup_key = f"processed:rss:{url_hash}"
+                                logger.debug(f"🔗 RSS URL: {announcement.attachment_url[:80]}...")
+                                logger.debug(f"🔑 Dedup key: {dedup_key}")
                             else:
                                 # For BSE/NSE, use symbol + date
                                 dedup_key = f"processed:{announcement.symbol}:{announcement.date}"
+                                logger.debug(f"🔑 Dedup key: {dedup_key}")
                             
                             if self.redis.exists(dedup_key):
                                 logger.debug(f"⏭️  Skipping already processed: {announcement.symbol} ({announcement.date})")
@@ -735,6 +742,7 @@ class MonitoringService:
                             
                             # Mark as processed
                             self.redis.setex(dedup_key, self.dedup_ttl, "1")
+                            logger.debug(f"✅ Stored dedup key: {dedup_key} (TTL: {self.dedup_ttl}s)")
                             
                             logger.info(f"📋 New result: {announcement.symbol} from {announcement.source}")
                             logger.info(f"   Description: {announcement.description[:100]}...")
