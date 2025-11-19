@@ -108,7 +108,8 @@ class VibeAlerts:
                     metrics=metrics,
                     analysis=analysis,
                     detection_time_sec=detection_time,
-                    pdf_url=announcement.attachment_url
+                    pdf_url=announcement.attachment_url,
+                    announcement_type=announcement.announcement_type or "QUARTERLY_RESULT"
                 )
                 
                 # Send notification

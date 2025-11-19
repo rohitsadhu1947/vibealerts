@@ -16,6 +16,7 @@ from loguru import logger
 import PyPDF2
 import pdfplumber
 from src.database.models import Announcement, ExtractedMetrics
+from src.utils.classifier import AnnouncementClassifier
 
 
 class PDFExtractor:
@@ -281,26 +282,41 @@ class ExtractionService:
         self.pdf_timeout = config['extraction'].get('pdf_timeout', 10)
     
     async def process_announcement(self, announcement: Announcement) -> Optional[ExtractedMetrics]:
-        """Full extraction pipeline: download → extract → parse OR use text directly"""
+        """Full extraction pipeline: classify → download → extract → parse OR use text directly"""
         
         start_time = time.time()
         
         try:
-            # Check if announcement already has extracted text (from RSS feeds)
+            # 1. Classify announcement type first
+            logger.info(f"[1/4] Classifying announcement type for {announcement.symbol}...")
+            announcement_type, confidence = AnnouncementClassifier.classify(
+                announcement.description,
+                announcement.attachment_text
+            )
+            announcement.announcement_type = announcement_type
+            
+            logger.info(
+                f"✅ Classified as {announcement_type} (confidence: {confidence:.2f}) "
+                f"for {announcement.symbol}"
+            )
+            
+            # 2. Check if announcement already has extracted text (from RSS feeds)
             if announcement.attachment_text and len(announcement.attachment_text) > 200:
-                logger.info(f"Using pre-extracted text from {announcement.source} for {announcement.symbol}")
+                logger.info(f"[2/4] Using pre-extracted text from {announcement.source} for {announcement.symbol}")
                 text = announcement.attachment_text
             else:
-                # 1. Download PDF (for exchange sources like BSE/NSE)
+                # Download PDF (for exchange sources like BSE/NSE)
+                logger.info(f"[2/4] Downloading PDF for {announcement.symbol}...")
                 pdf_path = await self._download_pdf(announcement)
                 if not pdf_path:
                     logger.error(f"PDF download failed for {announcement.symbol}")
                     return None
                 
-                # 2. Extract text from PDF
+                # 3. Extract text from PDF
+                logger.info(f"[3/4] Extracting text from PDF for {announcement.symbol}...")
                 text = await self.pdf_extractor.extract(pdf_path, announcement.symbol)
                 
-                # 3. Cleanup PDF
+                # Cleanup PDF
                 if os.path.exists(pdf_path):
                     os.remove(pdf_path)
                 
@@ -309,6 +325,7 @@ class ExtractionService:
                     return None
             
             # 4. Parse metrics from text
+            logger.info(f"[4/4] Parsing metrics for {announcement.symbol}...")
             metrics = self.metrics_parser.parse(text, announcement.symbol)
             
             # 5. Set extraction method
@@ -320,7 +337,7 @@ class ExtractionService:
             elapsed = time.time() - start_time
             logger.info(
                 f"✅ Extracted {announcement.symbol} in {elapsed:.2f}s "
-                f"(confidence: {metrics.confidence_score:.2f}, method: {metrics.extraction_method})"
+                f"(type: {announcement_type}, confidence: {metrics.confidence_score:.2f}, method: {metrics.extraction_method})"
             )
             
             return metrics
