@@ -375,6 +375,10 @@ class EconomicTimesRSSMonitor(SourceMonitor):
             
             if announcements:
                 logger.info(f"Economic Times RSS: Found {len(announcements)} result announcements")
+                
+                # Debug: Log details
+                for ann in announcements:
+                    logger.debug(f"  ET Result: {ann.symbol} | Date: {ann.date} | Desc: {ann.description[:80]}")
             
         except ET.ParseError as e:
             logger.error(f"Failed to parse ET RSS XML: {e}")
@@ -459,6 +463,10 @@ class LivemintRSSMonitor(SourceMonitor):
             
             if announcements:
                 logger.info(f"Livemint RSS: Found {len(announcements)} result announcements")
+                
+                # Debug: Log details
+                for ann in announcements:
+                    logger.debug(f"  Livemint Result: {ann.symbol} | Date: {ann.date} | Desc: {ann.description[:80]}")
             
         except ET.ParseError as e:
             logger.error(f"Failed to parse Livemint RSS XML: {e}")
@@ -712,5 +720,10 @@ class BSELibraryMonitor(SourceMonitor):
                 continue
         
         logger.info(f"BSE Library: Found {len(announcements)} result announcements")
+        
+        # Debug: Log details of found announcements
+        for ann in announcements:
+            logger.debug(f"  BSE Result: {ann.symbol} | Date: {ann.date} | Desc: {ann.description[:80]}")
+        
         return announcements
 
