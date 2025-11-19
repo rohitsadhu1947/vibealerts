@@ -1,2 +1,2 @@
-worker: python scripts/clear_redis.py && python main.py
+worker: python -c "from scripts.clear_redis import clear_redis; clear_redis()" ; python main.py
 
