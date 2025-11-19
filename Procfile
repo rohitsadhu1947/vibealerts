@@ -1,2 +1,2 @@
-worker: python main.py
+worker: python scripts/clear_redis.py && python main.py
 
