@@ -84,8 +84,8 @@ class TelegramNotifier:
                     url=f"https://www.screener.in/company/{alert.symbol}"
                 ),
                 InlineKeyboardButton(
-                    "💹 Kite",
-                    url=f"https://kite.zerodha.com/chart/NSE/{alert.symbol}"
+                    "💹 MoneyControl",
+                    url=f"https://www.moneycontrol.com/india/stockpricequote/{alert.symbol}"
                 ),
             ],
         ]
