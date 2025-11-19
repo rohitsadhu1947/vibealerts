@@ -677,9 +677,24 @@ class MonitoringService:
         if 'rss' in ann.source.lower() and ann.attachment_url:
             # For RSS, use URL hash as unique identifier
             import hashlib
-            url_hash = hashlib.md5(ann.attachment_url.encode()).hexdigest()[:16]
+            from urllib.parse import urlparse, urlunparse
+            
+            # Normalize URL before hashing to avoid duplicates from URL variations
+            parsed = urlparse(ann.attachment_url)
+            # Remove query params, fragments, force https, remove trailing slash
+            normalized_url = urlunparse((
+                'https',  # Always use https
+                parsed.netloc,
+                parsed.path.rstrip('/'),  # Remove trailing slash
+                '',  # No params
+                '',  # No query
+                ''   # No fragment
+            ))
+            
+            url_hash = hashlib.md5(normalized_url.encode()).hexdigest()[:16]
             dedup_key = f"processed:rss:{url_hash}"
-            logger.debug(f"🔗 RSS URL: {ann.attachment_url[:80]}...")
+            logger.debug(f"🔗 Original URL: {ann.attachment_url[:80]}...")
+            logger.debug(f"🔗 Normalized URL: {normalized_url[:80]}...")
             logger.debug(f"🔑 Dedup key: {dedup_key}")
         else:
             # For BSE/NSE, use symbol + date
@@ -727,9 +742,24 @@ class MonitoringService:
                             if 'rss' in announcement.source.lower() and announcement.attachment_url:
                                 # For RSS, use URL hash as unique identifier
                                 import hashlib
-                                url_hash = hashlib.md5(announcement.attachment_url.encode()).hexdigest()[:16]
+                                from urllib.parse import urlparse, urlunparse
+                                
+                                # Normalize URL before hashing to avoid duplicates from URL variations
+                                parsed = urlparse(announcement.attachment_url)
+                                # Remove query params, fragments, force https, remove trailing slash
+                                normalized_url = urlunparse((
+                                    'https',  # Always use https
+                                    parsed.netloc,
+                                    parsed.path.rstrip('/'),  # Remove trailing slash
+                                    '',  # No params
+                                    '',  # No query
+                                    ''   # No fragment
+                                ))
+                                
+                                url_hash = hashlib.md5(normalized_url.encode()).hexdigest()[:16]
                                 dedup_key = f"processed:rss:{url_hash}"
-                                logger.debug(f"🔗 RSS URL: {announcement.attachment_url[:80]}...")
+                                logger.debug(f"🔗 Original URL: {announcement.attachment_url[:80]}...")
+                                logger.debug(f"🔗 Normalized URL: {normalized_url[:80]}...")
                                 logger.debug(f"🔑 Dedup key: {dedup_key}")
                             else:
                                 # For BSE/NSE, use symbol + date
