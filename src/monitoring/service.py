@@ -37,12 +37,36 @@ class SourceMonitor:
         """Check if announcement is quarterly result"""
         text_lower = text.lower()
         keywords = [
+            # Financial results keywords
             'financial result',
+            'financial results',
             'quarterly result',
+            'quarterly results',
             'unaudited financial',
+            'unaudited results',
+            'audited results',
+            'standalone results',
+            'consolidated results',
             'quarterly and year to date',
+            
+            # Quarter identifiers
             'q1', 'q2', 'q3', 'q4',
             'quarter ended',
+            'half year ended',
+            'year ended',
+            
+            # Financial year patterns
+            'fy20', 'fy21', 'fy22', 'fy23', 'fy24', 'fy25', 'fy26',
+            
+            # Result announcements
+            'outcome of board meeting',
+            'submission of financial results',
+            'intimation of financial results',
+            'approved financial results',
+            
+            # Specific metrics (strong signals)
+            'revenue', 'profit', 'loss', 'ebitda', 'eps',
+            'net profit', 'gross profit', 'pat', 'pbt',
         ]
         return any(kw in text_lower for kw in keywords)
 
