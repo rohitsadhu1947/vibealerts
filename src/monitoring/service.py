@@ -591,12 +591,14 @@ class MonitoringService:
                             dedup_key = f"processed:{announcement.symbol}:{announcement.date}"
                             
                             if self.redis.exists(dedup_key):
+                                logger.debug(f"⏭️  Skipping already processed: {announcement.symbol} ({announcement.date})")
                                 continue
                             
                             # Mark as processed
                             self.redis.setex(dedup_key, self.dedup_ttl, "1")
                             
                             logger.info(f"📋 New result: {announcement.symbol} from {announcement.source}")
+                            logger.info(f"   Description: {announcement.description[:100]}...")
                             yield announcement
                     
                     await asyncio.sleep(self.poll_interval)

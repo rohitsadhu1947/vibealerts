@@ -56,6 +56,6 @@ telegram:
   retry_attempts: 3
 
 logging:
-  level: INFO
+  level: DEBUG
   format: json
 
