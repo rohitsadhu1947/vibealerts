@@ -16,6 +16,7 @@ from loguru import logger
 
 from config import load_config
 from src.utils.logging import setup_logging
+from src.utils.stock_filter import init_stock_filter
 from src.monitoring.service import MonitoringService
 from src.extraction.service import ExtractionService
 from src.analysis.engine import AnalysisEngine
@@ -32,6 +33,10 @@ class VibeAlerts:
         
         # Setup logging
         setup_logging(self.config['app']['log_level'])
+        
+        # Initialize stock filter
+        init_stock_filter(self.config)
+        logger.info("Stock filter initialized")
         
         # Initialize Redis
         self.redis = Redis.from_url(

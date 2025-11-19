@@ -813,6 +813,17 @@ class BSELibraryMonitor(SourceMonitor):
                 scrip_code = item.get('SCRIP_CD', '')
                 company_name = item.get('SLONGNAME', '')
                 
+                # Apply stock filter (BSE 500 + custom watchlist)
+                from src.utils.stock_filter import get_stock_filter
+                try:
+                    stock_filter = get_stock_filter()
+                    if not stock_filter.should_process(scrip_code, 'bse_library'):
+                        logger.debug(f"Filtered out: {company_name} ({scrip_code}) - not in BSE 500 or watchlist")
+                        continue
+                except RuntimeError:
+                    # Stock filter not initialized, proceed without filtering
+                    logger.warning("Stock filter not initialized, processing all stocks")
+                
                 # Get PDF attachment if available
                 attachment_name = item.get('ATTACHMENTNAME', '')
                 attachment_url = ''
