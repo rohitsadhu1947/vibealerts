@@ -36,12 +36,43 @@ class SourceMonitor:
     def is_quarterly_result(self, text: str) -> bool:
         """Check if announcement is quarterly result"""
         text_lower = text.lower()
+        
+        # FIRST: Filter out administrative/non-actionable announcements
+        exclude_keywords = [
+            'newspaper publication',
+            'newspaper advertisement',
+            'published in newspaper',
+            'publication of financial results',  # Notice ABOUT publication, not the results
+            'newspaper notice',
+            'press release publication',
+            'advertisement in newspaper',
+            'notice published in',
+            'copy of newspaper',
+            'intimation of newspaper publication',
+            'submission of newspaper',
+            'compliance certificate',
+            'record date',
+            'book closure',
+            'agm notice',
+            'egm notice',
+            'intimation of loss of share certificate',
+            'duplicate share certificate',
+            'postal ballot',
+            'e-voting',
+        ]
+        
+        # If it's an administrative notice, reject immediately
+        if any(kw in text_lower for kw in exclude_keywords):
+            return False
+        
+        # SECOND: Check if it's an actual result announcement
         keywords = [
             # Financial results keywords
             'financial result',
             'financial results',
             'quarterly result',
             'quarterly results',
+            'quarterly and',  # "quarterly and half year"
             'unaudited financial',
             'unaudited results',
             'audited results',
