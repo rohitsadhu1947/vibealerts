@@ -281,40 +281,46 @@ class ExtractionService:
         self.pdf_timeout = config['extraction'].get('pdf_timeout', 10)
     
     async def process_announcement(self, announcement: Announcement) -> Optional[ExtractedMetrics]:
-        """Full extraction pipeline: download → extract → parse"""
+        """Full extraction pipeline: download → extract → parse OR use text directly"""
         
         start_time = time.time()
         
         try:
-            # 1. Download PDF
-            pdf_path = await self._download_pdf(announcement)
-            if not pdf_path:
-                logger.error(f"PDF download failed for {announcement.symbol}")
-                return None
-            
-            # 2. Extract text
-            text = await self.pdf_extractor.extract(pdf_path, announcement.symbol)
-            if not text:
-                logger.error(f"Text extraction failed for {announcement.symbol}")
-                # Cleanup
+            # Check if announcement already has extracted text (from RSS feeds)
+            if announcement.attachment_text and len(announcement.attachment_text) > 200:
+                logger.info(f"Using pre-extracted text from {announcement.source} for {announcement.symbol}")
+                text = announcement.attachment_text
+            else:
+                # 1. Download PDF (for exchange sources like BSE/NSE)
+                pdf_path = await self._download_pdf(announcement)
+                if not pdf_path:
+                    logger.error(f"PDF download failed for {announcement.symbol}")
+                    return None
+                
+                # 2. Extract text from PDF
+                text = await self.pdf_extractor.extract(pdf_path, announcement.symbol)
+                
+                # 3. Cleanup PDF
                 if os.path.exists(pdf_path):
                     os.remove(pdf_path)
-                return None
+                
+                if not text:
+                    logger.error(f"Text extraction failed for {announcement.symbol}")
+                    return None
             
-            # 3. Parse metrics
+            # 4. Parse metrics from text
             metrics = self.metrics_parser.parse(text, announcement.symbol)
             
-            # 4. Set extraction method
-            metrics.extraction_method = "multi_strategy"
-            
-            # 5. Cleanup
-            if os.path.exists(pdf_path):
-                os.remove(pdf_path)
+            # 5. Set extraction method
+            if announcement.attachment_text and len(announcement.attachment_text) > 200:
+                metrics.extraction_method = "rss_text"
+            else:
+                metrics.extraction_method = "multi_strategy"
             
             elapsed = time.time() - start_time
             logger.info(
                 f"✅ Extracted {announcement.symbol} in {elapsed:.2f}s "
-                f"(confidence: {metrics.confidence_score:.2f})"
+                f"(confidence: {metrics.confidence_score:.2f}, method: {metrics.extraction_method})"
             )
             
             return metrics

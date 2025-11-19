@@ -9,32 +9,35 @@ monitoring:
       timeout: 10
       priority: 1
     
+    # SECONDARY: Economic Times RSS - News articles with text content
+    - name: economic_times_rss
+      url: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"
+      enabled: true
+      timeout: 10
+      priority: 2
+    
+    # TERTIARY: Livemint RSS - News articles with text content
+    - name: livemint_rss
+      url: "https://www.livemint.com/rss/markets"
+      enabled: true
+      timeout: 10
+      priority: 3
+    
     # BACKUP: NSE API (may have bot protection, but has PDFs)
     - name: nse_api
       url: "https://www.nseindia.com/api/corporate-announcements"
       enabled: true
       timeout: 10
-      priority: 2
-    
-    # DISABLED: RSS feeds don't have PDFs, only news articles
-    - name: economic_times_rss
-      url: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"
-      enabled: false
-      timeout: 10
-      priority: 3
-    
-    - name: livemint_rss
-      url: "https://www.livemint.com/rss/markets"
-      enabled: false
-      timeout: 10
       priority: 4
     
+    # DISABLED: MoneyControl RSS (stale - last updated April 2024)
     - name: moneycontrol_rss
       url: "https://www.moneycontrol.com/rss/results.xml"
       enabled: false
       timeout: 5
       priority: 5
     
+    # DISABLED: Old BSE API (replaced by bse_library)
     - name: bse_api
       url: "https://www.bseindia.com/xml-data/corpfiling/AttachLive/Announcement_Attachment.aspx"
       enabled: false
