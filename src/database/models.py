@@ -154,6 +154,8 @@ class AlertMessage:
     detection_time_sec: float
     pdf_url: str
     announcement_type: str = "QUARTERLY_RESULT"  # Default to quarterly result
+    news_title: str = ""  # For news articles
+    news_content: str = ""  # For news articles
     
     def format_telegram(self) -> str:
         """Format message for Telegram with Markdown"""
@@ -216,26 +218,46 @@ class AlertMessage:
         return message
     
     def _format_news_alert(self) -> str:
-        """Format news article alert"""
-        # Extract key metrics if available
-        revenue = f"₹{float(self.metrics.revenue):,.0f}Cr" if self.metrics.revenue else None
-        profit = f"₹{float(self.metrics.profit_after_tax):,.0f}Cr" if self.metrics.profit_after_tax else None
+        """Format news article alert with actionable insights"""
+        from src.utils.news_analyzer import NewsAnalyzer
+        
+        # Analyze the news for insights
+        insights = NewsAnalyzer.analyze(self.news_title, self.news_content)
         
         message = f"""📰 **{self.symbol} - Market News**
 
+{insights['sentiment_emoji']} **Sentiment:** {insights['sentiment']}
 """
         
-        # Add metrics if found in news
+        # Add price movement if detected
+        if insights['price_movement']:
+            message += f"📈 **Price:** {insights['price_movement']}\n"
+        
+        # Add key action/trigger
+        if insights['key_action']:
+            message += f"🎯 **Trigger:** {insights['key_action']}\n"
+        
+        message += "\n"
+        
+        # Add quick summary
+        message += f"**Summary:**\n{insights['summary']}\n\n"
+        
+        # Add actionability score
+        message += f"**{insights['actionability']}**\n\n"
+        
+        # Add any extracted financial figures
+        revenue = f"₹{float(self.metrics.revenue):,.0f}Cr" if self.metrics.revenue else None
+        profit = f"₹{float(self.metrics.profit_after_tax):,.0f}Cr" if self.metrics.profit_after_tax else None
+        
         if revenue or profit:
-            message += "**Key Figures:**\n"
+            message += "💰 **Mentioned Figures:**\n"
             if revenue:
                 message += f"• Revenue: {revenue}\n"
             if profit:
                 message += f"• Profit: {profit}\n"
             message += "\n"
         
-        message += f"""💡 **Source:** News Article
-⏱️ Detected in {self.detection_time_sec:.1f}s"""
+        message += f"⏱️ Detected in {self.detection_time_sec:.1f}s"
         
         return message
     

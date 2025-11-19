@@ -109,7 +109,9 @@ class VibeAlerts:
                     analysis=analysis,
                     detection_time_sec=detection_time,
                     pdf_url=announcement.attachment_url,
-                    announcement_type=announcement.announcement_type or "QUARTERLY_RESULT"
+                    announcement_type=announcement.announcement_type or "QUARTERLY_RESULT",
+                    news_title=announcement.description,  # Pass news title
+                    news_content=announcement.attachment_text  # Pass news content
                 )
                 
                 # Send notification
