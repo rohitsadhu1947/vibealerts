@@ -853,10 +853,16 @@ class BSELibraryMonitor(SourceMonitor):
         """Parse BSE library response"""
         announcements = []
         
+        total_count = 0
+        filtered_by_content = 0
+        filtered_by_stock = 0
+        
         for item in data:
             try:
                 # Import hashlib for description hashing
                 import hashlib
+                
+                total_count += 1
                 
                 # Get the announcement details (convert to string to handle integers)
                 headline = str(item.get('HEADLINE', '') or item.get('MORE', ''))
@@ -870,6 +876,9 @@ class BSELibraryMonitor(SourceMonitor):
                 is_major_action = self.is_major_corporate_action(combined_text)
                 
                 if not (is_result or is_major_action):
+                    filtered_by_content += 1
+                    if total_count <= 3:  # Log first 3 filtered items
+                        logger.debug(f"❌ Content filter: {headline[:80]}")
                     continue
                 
                 # Extract symbol from company name (scrip code)
@@ -881,7 +890,9 @@ class BSELibraryMonitor(SourceMonitor):
                 try:
                     stock_filter = get_stock_filter()
                     if not stock_filter.should_process(scrip_code, 'bse_library'):
-                        logger.debug(f"Filtered out: {company_name} ({scrip_code}) - not in BSE 500 or watchlist")
+                        filtered_by_stock += 1
+                        if filtered_by_stock <= 3:  # Log first 3 filtered stocks
+                            logger.debug(f"❌ Stock filter: {company_name} ({scrip_code})")
                         continue
                 except RuntimeError:
                     # Stock filter not initialized, proceed without filtering
@@ -916,6 +927,7 @@ class BSELibraryMonitor(SourceMonitor):
                 continue
         
         logger.info(f"BSE Library: Found {len(announcements)} result announcements")
+        logger.info(f"📊 Filter stats: Total={total_count}, Content filtered={filtered_by_content}, Stock filtered={filtered_by_stock}, Passed={len(announcements)}")
         
         # Debug: Log details of found announcements
         for ann in announcements:
