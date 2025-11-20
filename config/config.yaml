@@ -49,11 +49,11 @@ redis:
 
 # Stock filtering - Reduce noise by monitoring only relevant stocks
 stock_filter:
-  enabled: false  # TEMPORARILY DISABLED - BSE 500 list incomplete, missing real stocks
+  enabled: true  # NOW ENABLED - Real BSE 500 list (all 500 stocks)
   
   # Index-based filtering
   bse_500_only: true  # Only monitor BSE 500 stocks (top 500 by market cap)
-  nse_500_only: true  # Only monitor NSE 500 stocks (top 500 by market cap)
+  nse_500_only: false  # Disabled for now (NSE 500 list still incomplete)
   
   # Custom watchlist
   allow_custom_watchlist: true  # Allow monitoring of custom stocks even if not in BSE/NSE 500
