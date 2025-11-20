@@ -855,6 +855,9 @@ class BSELibraryMonitor(SourceMonitor):
         
         for item in data:
             try:
+                # Import hashlib for description hashing
+                import hashlib
+                
                 # Get the announcement details (convert to string to handle integers)
                 headline = str(item.get('HEADLINE', '') or item.get('MORE', ''))
                 subcategory = str(item.get('SUBCATNAME', ''))
@@ -893,10 +896,6 @@ class BSELibraryMonitor(SourceMonitor):
                 
                 # Parse date
                 date_str = str(item.get('NEWS_DT', '') or item.get('DT_TM', ''))
-                
-                # Create a more unique identifier for deduplication
-                # Use headline + date (not just symbol + date) since a company can have multiple announcements per day
-                headline_hash = hashlib.md5(headline.encode()).hexdigest()[:8]
                 
                 ann = Announcement(
                     source='bse_library',
