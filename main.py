@@ -100,6 +100,55 @@ class VibeAlerts:
                 
                 if not metrics:
                     logger.warning(f"❌ Extraction failed for {announcement.symbol}")
+                    
+                    # Send minimal alert even without metrics
+                    logger.info(f"📤 Sending minimal alert (extraction failed, but announcement detected)...")
+                    
+                    try:
+                        # Create minimal alert message
+                        from src.utils.symbol_resolver import resolve_symbol
+                        company_name = await resolve_symbol(announcement.symbol)
+                        
+                        detection_time = time.time() - start_time
+                        
+                        # Determine announcement type from description
+                        desc_lower = announcement.description.lower()
+                        if 'earning' in desc_lower or 'transcript' in desc_lower or 'conference' in desc_lower:
+                            ann_type = "🎤 Earnings Call/Transcript"
+                        elif 'acquisition' in desc_lower or 'merger' in desc_lower or 'buyback' in desc_lower:
+                            ann_type = "🔔 Corporate Action"
+                        elif 'result' in desc_lower or 'financial' in desc_lower:
+                            ann_type = "📊 Financial Results"
+                        else:
+                            ann_type = "📋 Announcement"
+                        
+                        # Create minimal alert text
+                        display_name = company_name if company_name else announcement.symbol
+                        
+                        minimal_message = f"""**{ann_type}**
+
+**{display_name}** ({announcement.symbol})
+
+**Subject:** {announcement.description[:200]}
+
+⚠️ **Note:** PDF extraction failed (image-based/corrupted)
+📄 **View PDF:** [Click here]({announcement.attachment_url})
+
+⏱️ Detected in {detection_time:.1f}s"""
+                        
+                        # Send to Telegram
+                        await self.telegram_notifier.bot.send_message(
+                            chat_id=self.config['telegram']['channel_id'],
+                            text=minimal_message,
+                            parse_mode='Markdown',
+                            disable_web_page_preview=True
+                        )
+                        
+                        logger.info(f"✅ Minimal alert sent for {announcement.symbol}")
+                        
+                    except Exception as e:
+                        logger.error(f"Failed to send minimal alert: {e}")
+                    
                     continue
                 
                 # Analyze
