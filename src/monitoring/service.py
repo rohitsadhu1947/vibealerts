@@ -673,7 +673,7 @@ class MonitoringService:
     async def _process_announcement(self, ann: Announcement):
         """Process a single announcement with deduplication"""
         
-        # Check deduplication - use URL for RSS, symbol+date for others
+        # Check deduplication - use URL for RSS, symbol+desc_hash for BSE/NSE
         if 'rss' in ann.source.lower() and ann.attachment_url:
             # For RSS, use URL hash as unique identifier
             import hashlib
@@ -697,8 +697,12 @@ class MonitoringService:
             logger.debug(f"🔗 Normalized URL: {normalized_url[:80]}...")
             logger.debug(f"🔑 Dedup key: {dedup_key}")
         else:
-            # For BSE/NSE, use symbol + date
-            dedup_key = f"processed:{ann.symbol}:{ann.date}"
+            # For BSE/NSE, use symbol + description hash (more unique than date)
+            # A company can have multiple announcements per day
+            import hashlib
+            desc_hash = hashlib.md5(ann.description.encode()).hexdigest()[:12]
+            dedup_key = f"processed:{ann.symbol}:{desc_hash}"
+            logger.debug(f"📋 BSE: {ann.symbol} | Desc: {ann.description[:60]}")
             logger.debug(f"🔑 Dedup key: {dedup_key}")
         
         if self.redis.exists(dedup_key):
@@ -762,8 +766,12 @@ class MonitoringService:
                                 logger.debug(f"🔗 Normalized URL: {normalized_url[:80]}...")
                                 logger.debug(f"🔑 Dedup key: {dedup_key}")
                             else:
-                                # For BSE/NSE, use symbol + date
-                                dedup_key = f"processed:{announcement.symbol}:{announcement.date}"
+                                # For BSE/NSE, use symbol + description hash (more unique than date)
+                                # A company can have multiple announcements per day
+                                import hashlib
+                                desc_hash = hashlib.md5(announcement.description.encode()).hexdigest()[:12]
+                                dedup_key = f"processed:{announcement.symbol}:{desc_hash}"
+                                logger.debug(f"📋 BSE: {announcement.symbol} | Desc: {announcement.description[:60]}")
                                 logger.debug(f"🔑 Dedup key: {dedup_key}")
                             
                             if self.redis.exists(dedup_key):
@@ -885,6 +893,10 @@ class BSELibraryMonitor(SourceMonitor):
                 
                 # Parse date
                 date_str = str(item.get('NEWS_DT', '') or item.get('DT_TM', ''))
+                
+                # Create a more unique identifier for deduplication
+                # Use headline + date (not just symbol + date) since a company can have multiple announcements per day
+                headline_hash = hashlib.md5(headline.encode()).hexdigest()[:8]
                 
                 ann = Announcement(
                     source='bse_library',
