@@ -105,49 +105,61 @@ class VibeAlerts:
                     logger.info(f"📤 Sending minimal alert (extraction failed, but announcement detected)...")
                     
                     try:
-                        # Create minimal alert message
+                        # Create minimal alert using simple text format
                         from src.utils.symbol_resolver import resolve_symbol
                         company_name = await resolve_symbol(announcement.symbol)
                         
                         detection_time = time.time() - start_time
-                        
-                        # Determine announcement type from description
-                        desc_lower = announcement.description.lower()
-                        if 'earning' in desc_lower or 'transcript' in desc_lower or 'conference' in desc_lower:
-                            ann_type = "🎤 Earnings Call/Transcript"
-                        elif 'acquisition' in desc_lower or 'merger' in desc_lower or 'buyback' in desc_lower:
-                            ann_type = "🔔 Corporate Action"
-                        elif 'result' in desc_lower or 'financial' in desc_lower:
-                            ann_type = "📊 Financial Results"
-                        else:
-                            ann_type = "📋 Announcement"
-                        
-                        # Create minimal alert text
                         display_name = company_name if company_name else announcement.symbol
                         
-                        minimal_message = f"""**{ann_type}**
+                        # Determine announcement type emoji
+                        desc_lower = announcement.description.lower()
+                        if 'earning' in desc_lower or 'transcript' in desc_lower or 'conference' in desc_lower:
+                            emoji = "🎤"
+                            ann_type = "Earnings Call"
+                        elif 'work order' in desc_lower or 'contract' in desc_lower or 'acquisition' in desc_lower:
+                            emoji = "🔔"
+                            ann_type = "Corporate Action"
+                        elif 'result' in desc_lower or 'financial' in desc_lower:
+                            emoji = "📊"
+                            ann_type = "Results"
+                        else:
+                            emoji = "📋"
+                            ann_type = "Announcement"
+                        
+                        # Create minimal alert text
+                        minimal_message = f"""{emoji} *{display_name}* - {ann_type}
 
-**{display_name}** ({announcement.symbol})
+*Type:* {announcement.announcement_type or ann_type}
 
-**Subject:** {announcement.description[:200]}
+*Subject:* {announcement.description[:250]}
 
-⚠️ **Note:** PDF extraction failed (image-based/corrupted)
-📄 **View PDF:** [Click here]({announcement.attachment_url})
+⚠️ *Note:* PDF extraction failed (image-based/corrupted PDF)
 
 ⏱️ Detected in {detection_time:.1f}s"""
                         
-                        # Send to Telegram
+                        # Send to Telegram with buttons
+                        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+                        
+                        keyboard = [[
+                            InlineKeyboardButton("📄 View PDF", url=announcement.attachment_url),
+                            InlineKeyboardButton("🔍 Screener", url=f"https://www.screener.in/company/{announcement.symbol}")
+                        ]]
+                        reply_markup = InlineKeyboardMarkup(keyboard)
+                        
                         await self.telegram_notifier.bot.send_message(
                             chat_id=self.config['telegram']['channel_id'],
                             text=minimal_message,
                             parse_mode='Markdown',
+                            reply_markup=reply_markup,
                             disable_web_page_preview=True
                         )
                         
-                        logger.info(f"✅ Minimal alert sent for {announcement.symbol}")
+                        logger.info(f"✅ Minimal alert sent for {display_name} ({announcement.symbol})")
                         
                     except Exception as e:
                         logger.error(f"Failed to send minimal alert: {e}")
+                        logger.exception(e)
                     
                     continue
                 
